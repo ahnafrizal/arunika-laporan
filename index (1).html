@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PT Arunika Teknologi | Pelaporan Kerusakan Fasilitas</title>
+<style>
+:root{--ink:#14213d;--muted:#5b6b82;--line:#d6e0ec;--brand:#0f6e6e;--brand-d:#0a5555;--bg:#f1f6f8;--ok-bg:#e8f7ef;--ok:#14573a;--err-bg:#fdeeea;--err:#9b2f1f}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--brand);color:#fff;padding:18px 20px}
+.bar{max-width:720px;margin:auto;display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:#fff;color:var(--brand);display:grid;place-items:center;font-weight:800;font-size:20px}
+.bar b{display:block;font-size:18px}
+.bar span{font-size:13px;opacity:.85}
+main{max-width:720px;margin:28px auto;padding:0 16px}
+h1{font-size:clamp(24px,5vw,32px);margin:0 0 8px;line-height:1.2}
+.sub{color:var(--muted);line-height:1.6;margin:0 0 22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:0 8px 28px #14213d12}
+label{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.field{margin-bottom:18px}
+input,textarea{width:100%;font:inherit;color:var(--ink);padding:12px 13px;border:1px solid #bccbdc;border-radius:10px;background:#fff}
+input:focus,textarea:focus{outline:3px solid #a9dede;border-color:var(--brand)}
+textarea{min-height:120px;resize:vertical}
+button{width:100%;border:0;border-radius:10px;background:var(--brand);color:#fff;font:inherit;font-weight:700;padding:13px;cursor:pointer}
+button:hover{background:var(--brand-d)}
+button:disabled{opacity:.6;cursor:wait}
+.msg{display:none;margin-top:18px;padding:14px 16px;border-radius:10px;line-height:1.6;overflow-wrap:anywhere}
+.msg.ok{display:block;background:var(--ok-bg);color:var(--ok);border:1px solid #b3e2c8}
+.msg.err{display:block;background:var(--err-bg);color:var(--err);border:1px solid #f2c4ba}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
+footer{text-align:center;color:#8091a7;font-size:12px;margin:24px 0}
+</style>
+</head>
+<body>
+<header><div class="bar"><div class="logo">A</div><div><b>PT Arunika Teknologi</b><span>Layanan Fasilitas &amp; IT</span></div></div></header>
+<main>
+  <h1>Pelaporan Kerusakan Fasilitas</h1>
+  <p class="sub">Laporkan kerusakan komputer, printer, atau perangkat lain. Setiap laporan mendapat nomor tiket dan diteruskan ke administrator.</p>
+  <section class="card">
+    <form id="form">
+      <div class="field"><label for="nama">Nama pelapor</label>
+        <input id="nama" minlength="2" maxlength="80" required placeholder="Contoh: Andi"></div>
+      <div class="field"><label for="lokasi">Lokasi / ruangan</label>
+        <input id="lokasi" minlength="2" maxlength="80" required placeholder="Contoh: Ruang Administrasi"></div>
+      <div class="field"><label for="deskripsi">Deskripsi kerusakan</label>
+        <textarea id="deskripsi" minlength="5" maxlength="500" required placeholder="Contoh: Komputer tidak dapat menyala"></textarea></div>
+      <button id="btn" type="submit">Kirim Laporan</button>
+      <div id="msg" class="msg" role="status" aria-live="polite"></div>
+    </form>
+    <p class="note">Aplikasi praktik. Jangan memasukkan data pribadi atau rahasia.</p>
+  </section>
+</main>
+<footer>PT Arunika Teknologi &bull; GitHub Pages &rarr; API Gateway &rarr; Lambda &rarr; SQS &rarr; Lambda &rarr; SNS</footer>
+<script>
+'use strict';
+// GANTI dengan Invoke URL API Gateway Anda + /laporan
+const API_URL = 'https://lpu67r8y0m.execute-api.us-east-1.amazonaws.com/laporan';
+
+const form = document.getElementById('form');
+const btn = document.getElementById('btn');
+const msg = document.getElementById('msg');
+
+function show(text, ok) { msg.className = 'msg ' + (ok ? 'ok' : 'err'); msg.textContent = text; }
+
+form.addEventListener('submit', async function (ev) {
+  ev.preventDefault();
+  const data = {
+    nama: document.getElementById('nama').value.trim(),
+    lokasi: document.getElementById('lokasi').value.trim(),
+    deskripsi: document.getElementById('deskripsi').value.trim()
+  };
+  btn.disabled = true; btn.textContent = 'Mengirim laporan...'; msg.className = 'msg';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const out = await res.json();
+    if (!res.ok || String(out.status).toUpperCase() !== 'DITERIMA') {
+      throw new Error(out.pesan || out.error || 'Laporan ditolak oleh server.');
+    }
+    show('Laporan diterima! Nomor tiket Anda: ' + out.tiket + '. Administrator akan menerima notifikasi email.', true);
+    form.reset();
+  } catch (err) {
+    show('Laporan belum berhasil dikirim: ' + err.message, false);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Kirim Laporan';
+  }
+});
+</script>
+</body>
+</html>
